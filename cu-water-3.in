@@ -1,0 +1,70 @@
+suffix gpu
+package gpu 1
+
+#Initialization
+units      metal
+dimension  3
+boundary   p p p
+atom_style full
+
+read_data     data.waternew
+neighbor      2.0 bin
+neigh_modify  delay 0 every 1 check yes
+
+group hy type 2      # H_water
+group ox type 3      # O_water
+
+# set the charge of atom
+set group ox charge -0.830
+set group hy charge 0.415
+
+# set potential function and parameters
+group copper    type 1       
+group water     type 2 3
+
+
+pair_style lj/cut/coul/long 10.0
+
+
+pair_coeff 1 1  0.0 0.0          # Cu-Cu
+pair_coeff 1 2  0.0 0.0          # Cu-H
+pair_coeff 1 3  0.0152498675 2.34 # Cu-O 
+pair_coeff 2 2  0.0 0.0          # H-H
+pair_coeff 2 3  0.0 0.0          # H-O
+pair_coeff 3 3	0.004386 3.188   # O-O
+
+bond_style      harmonic
+angle_style     harmonic
+dihedral_style  none
+improper_style  none
+bond_coeff      1 450.0  0.9572
+angle_coeff     1 55.0 104.52
+kspace_style    pppm 1.0e-5 
+
+compute watertemp water temp
+thermo          22
+thermo_style    custom step pe etotal press temp c_watertemp
+dump            dumpXYZ all custom 1200  cu-water-1.lammpstrj id mol type element mass x y z
+dump_modify     dumpXYZ element Cu H O
+
+
+fix          1 copper setforce 0.0 0.0 0.0
+
+timestep     0.000654
+
+velocity     all create 0.1 482748 dist gaussian
+
+fix           2 water nvt temp 0.1 0.1 0.065
+run 1000
+unfix 2
+
+fix          3 water nvt temp 0.1 300 0.065
+run 55000
+
+unfix 3
+
+fix             4 water nvt temp 300.0 300.0 0.065
+run 850000
+
+unfix 4
+
